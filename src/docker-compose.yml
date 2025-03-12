@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Servicio de la base de datos
+  db:
+    image: postgres:15
+    container_name: visor3d_postgres
+    environment:
+      POSTGRES_USER: visor3d_user
+      POSTGRES_PASSWORD: visor3d_pass
+      POSTGRES_DB: visor3d_db
+    volumes:
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker_shared:/docker_shared
+    ports:
+      - "5432:5432"
+    restart: always
+
+  # Servicio del backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: visor3d_backend
+    env_file:
+      - ./backend/credentials.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    restart: always
+
+  # Servicio del frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: visor3d_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_BACKEND_URL=http://visor3d_backend:4000
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_data:
